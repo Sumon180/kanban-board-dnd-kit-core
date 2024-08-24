@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import DeleteIcon from "./icons/DeleteIcon";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Props {
   task: Task;
@@ -12,6 +14,38 @@ const TaskCard = (props: Props) => {
   const [mouseIsOver, setMouseIsOver] = useState(false);
   const [editTask, setEditTask] = useState(false);
 
+  const {
+    setNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id,
+    data: {
+      type: "Task",
+      task,
+    },
+    disabled: editTask,
+  });
+
+  const style = {
+    transition,
+    transform: CSS.Transform.toString(transform),
+  };
+
+  if (isDragging) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="h-[100px] min-h-[100px] 
+  bg-gray-900 opacity-50 rounded-md border border-rose-500"
+      />
+    );
+  }
+
   const toggleEditTask = () => {
     setEditTask(!editTask);
     setMouseIsOver(false);
@@ -20,6 +54,10 @@ const TaskCard = (props: Props) => {
   if (editTask) {
     return (
       <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
         className="bg-slate-900 p-1 rounded h-[100px] min-h-[100px]
       hover:ring-1 hover:ring-inset hover:ring-rose-500
       cursor-move"
@@ -42,6 +80,10 @@ const TaskCard = (props: Props) => {
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       onClick={toggleEditTask}
       onMouseEnter={() => setMouseIsOver(true)}
       onMouseLeave={() => setMouseIsOver(false)}

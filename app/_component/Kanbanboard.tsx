@@ -6,6 +6,7 @@ import ColumnContainer from "./ColumnContainer";
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -13,6 +14,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext } from "@dnd-kit/sortable";
+import TaskCard from "./TaskCard";
 
 const Kanbanboard = () => {
   const [columns, setColumn] = useState<Column[]>([]);
@@ -20,6 +22,7 @@ const Kanbanboard = () => {
   const [tasks, setTask] = useState<Task[]>([]);
 
   const [activeColumn, setActiveColumn] = useState<Column | null>(null);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -32,28 +35,29 @@ const Kanbanboard = () => {
   console.log(columns);
 
   return (
-    <div
-      className="m-auto flex min-h-screen w-full
-    items-center overflow-x-auto
-    overflow-y-hidden px-[40px]"
-    >
-      <DndContext
-        sensors={sensors}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-      >
-        <div className="m-auto">
-          <button
-            onClick={() => {
-              createNewColumn();
-            }}
-            className="flex gap-2 h-[60px] w-[350px] min-w-[350px] cursor-pointer mb-2
+    <div className="p-5">
+      <button
+        onClick={() => {
+          createNewColumn();
+        }}
+        className="flex gap-2 h-[60px] w-[350px] min-w-[350px] cursor-pointer
         rounded-lg bg-slate-900 border-2 border-slate-600
         p-4 ring-rose-500 hover:ring-2"
-          >
-            <PlusIcon />
-            Add Column
-          </button>
+      >
+        <PlusIcon />
+        Add Column
+      </button>
+      <div
+        className="m-auto flex w-full
+    items-center overflow-x-auto
+    overflow-y-hidden py-3"
+      >
+        <DndContext
+          sensors={sensors}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragOver={onDragOver}
+        >
           <div className="flex gap-5">
             <SortableContext items={columnsId}>
               {columns.map((column) => (
@@ -70,21 +74,32 @@ const Kanbanboard = () => {
               ))}
             </SortableContext>
           </div>
-        </div>
-        <DragOverlay>
-          {activeColumn && (
-            <ColumnContainer
-              column={activeColumn}
-              deleteColumn={deleteColumn}
-              updateColumn={updateColumn}
-              createTask={createTask}
-              tasks={tasks.filter((task) => task.columnId === activeColumn.id)}
-              deleteTask={deleteTask}
-              updateTask={updateTask}
-            />
-          )}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {activeColumn && (
+              <ColumnContainer
+                column={activeColumn}
+                deleteColumn={deleteColumn}
+                updateColumn={updateColumn}
+                createTask={createTask}
+                tasks={tasks.filter(
+                  (task) => task.columnId === activeColumn.id
+                )}
+                deleteTask={deleteTask}
+                updateTask={updateTask}
+              />
+            )}
+            {activeTask && (
+              <div className="rotate-6">
+                <TaskCard
+                  task={activeTask}
+                  deleteTask={deleteTask}
+                  updateTask={updateTask}
+                />
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      </div>
     </div>
   );
 
@@ -136,27 +151,85 @@ const Kanbanboard = () => {
       setActiveColumn(event.active.data.current.column);
       return;
     }
+    if (event.active.data.current?.type === "Task") {
+      setActiveTask(event.active.data.current.task);
+      return;
+    }
   }
 
   function onDragEnd(event: DragEndEvent) {
-    // console.log("DRAG END",event);
+    const { active, over } = event;
+
+    setActiveColumn(null);
+    setActiveTask(null);
+
+    if (!over) return;
+
+    const activeTaskId = active.id;
+    const overId = over.id;
+
+    const isActiveATask = active.data.current?.type === "Task";
+    const isOverAColumn = over.data.current?.type === "Column";
+
+    if (!isActiveATask || !over) return;
+
+    if (isOverAColumn) {
+      setTask((tasks) => {
+        const activeTaskIndex = tasks.findIndex(
+          (task) => task.id === activeTaskId
+        );
+
+        tasks[activeTaskIndex] = {
+          ...tasks[activeTaskIndex],
+          columnId: overId,
+        };
+
+        return [...tasks];
+      });
+    }
+  }
+
+  function onDragOver(event: DragOverEvent) {
     const { active, over } = event;
     if (!over) return;
 
-    const activeColumnId = active.id;
-    const overColumnId = over.id;
+    const activeTaskId = active.id;
+    const overId = over.id;
 
-    if (activeColumnId === overColumnId) return;
+    const isActiveATask = active.data.current?.type === "Task";
+    const isOverATask = over.data.current?.type === "Task";
+    const isOverAColumn = over.data.current?.type === "Column";
 
-    setColumn((colum) => {
-      const activeColumnIndex = columns.findIndex(
-        (col) => col.id === activeColumnId
+    if (!isActiveATask) return;
+
+    setTask((tasks) => {
+      const activeTaskIndex = tasks.findIndex(
+        (task) => task.id === activeTaskId
       );
-      const overColumnIndex = columns.findIndex(
-        (col) => col.id === overColumnId
-      );
+      let newTasks = [...tasks];
 
-      return arrayMove(colum, activeColumnIndex, overColumnIndex);
+      if (isOverATask) {
+        const overTaskIndex = tasks.findIndex((task) => task.id === overId);
+
+        // Check if it's the same column
+        if (tasks[activeTaskIndex].columnId === tasks[overTaskIndex].columnId) {
+          newTasks = arrayMove(newTasks, activeTaskIndex, overTaskIndex);
+        } else {
+          newTasks[activeTaskIndex] = {
+            ...newTasks[activeTaskIndex],
+            columnId: tasks[overTaskIndex].columnId,
+          };
+          newTasks = arrayMove(newTasks, activeTaskIndex, overTaskIndex);
+        }
+      } else if (isOverAColumn) {
+        // When dragging over an empty column
+        newTasks[activeTaskIndex] = {
+          ...newTasks[activeTaskIndex],
+          columnId: overId,
+        };
+      }
+
+      return newTasks;
     });
   }
 };

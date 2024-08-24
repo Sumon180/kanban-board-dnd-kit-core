@@ -12,7 +12,7 @@ body,
   width: 4px;
 }
 ::-webkit-scrollbar:horizontal {
-  height: 8px;
+  height: 20px;
 }
 ::-webkit-scrollbar-thumb {
   @apply bg-rose-700 rounded-xl
