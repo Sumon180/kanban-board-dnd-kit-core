@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import DeleteIcon from "./icons/DeleteIcon";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -6,10 +6,12 @@ import { CSS } from "@dnd-kit/utilities";
 interface Props {
   column: Column;
   deleteColumn: (id: Id) => void;
+  updateColumn: (id: Id, title: string) => void;
 }
 
 const ColumnContainer = (props: Props) => {
-  const { column, deleteColumn } = props;
+  const { column, deleteColumn, updateColumn } = props;
+  const [editMode, setEditMode] = useState(false);
 
   const {
     setNodeRef,
@@ -24,6 +26,7 @@ const ColumnContainer = (props: Props) => {
       type: "Column",
       column,
     },
+    disabled: editMode,
   });
 
   const style = {
@@ -53,6 +56,7 @@ const ColumnContainer = (props: Props) => {
       <div
         {...attributes}
         {...listeners}
+        onClick={() => setEditMode(true)}
         className="bg-slate-900 h-[60px] cursor-grab rounded-md rounded-b-none 
       p-3 font-bold border-slate-800 border-4
       flex items-center justify-between"
@@ -64,7 +68,22 @@ const ColumnContainer = (props: Props) => {
           >
             0
           </div>
-          {column.title}
+          {!editMode ? (
+            column.title
+          ) : (
+            <input
+              type="text"
+              value={column.title}
+              onChange={(e) => updateColumn(column.id, e.target.value)}
+              autoFocus
+              onBlur={() => setEditMode(false)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                setEditMode(false);
+              }}
+              className="bg-slate-800 border border-rose-500 outline-none px-2 rounded"
+            />
+          )}
         </div>
         <button
           onClick={() => {
