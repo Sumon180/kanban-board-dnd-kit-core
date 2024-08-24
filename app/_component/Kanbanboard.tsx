@@ -42,7 +42,18 @@ const Kanbanboard = () => {
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
-        <div className="m-auto flex gap-5">
+        <div className="m-auto">
+          <button
+            onClick={() => {
+              createNewColumn();
+            }}
+            className="flex gap-2 h-[60px] w-[350px] min-w-[350px] cursor-pointer mb-2
+        rounded-lg bg-slate-900 border-2 border-slate-600
+        p-4 ring-rose-500 hover:ring-2"
+          >
+            <PlusIcon />
+            Add Column
+          </button>
           <div className="flex gap-5">
             <SortableContext items={columnsId}>
               {columns.map((column) => (
@@ -59,17 +70,6 @@ const Kanbanboard = () => {
               ))}
             </SortableContext>
           </div>
-          <button
-            onClick={() => {
-              createNewColumn();
-            }}
-            className="flex gap-2 h-[60px] w-[350px] min-w-[350px] cursor-pointer
-        rounded-lg bg-slate-900 border-2 border-slate-600
-        p-4 ring-rose-500 hover:ring-2"
-          >
-            <PlusIcon />
-            Add Column
-          </button>
         </div>
         <DragOverlay>
           {activeColumn && (
@@ -93,7 +93,7 @@ const Kanbanboard = () => {
       id: generatedId(),
       title: `Column ${columns.length + 1}`,
     };
-    setColumn([...columns, columnToAdd]);
+    setColumn([columnToAdd, ...columns]);
   }
 
   function createTask(columnId: Id) {
