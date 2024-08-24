@@ -16,10 +16,22 @@ import {
 import { arrayMove, SortableContext } from "@dnd-kit/sortable";
 import TaskCard from "./TaskCard";
 
+const initialColumns = [
+  { id: "column-1", title: "To Do" },
+  { id: "column-2", title: "In Progress" },
+  { id: "column-3", title: "Done" },
+];
+
+const initialTasks = [
+  { id: "task-1", columnId: "column-1", content: "Implement task 1" },
+  { id: "task-2", columnId: "column-1", content: "Implement task 2" },
+  { id: "task-3", columnId: "column-2", content: "Implement task 3" },
+];
+
 const Kanbanboard = () => {
-  const [columns, setColumn] = useState<Column[]>([]);
+  const [columns, setColumn] = useState<Column[]>(initialColumns);
   const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
-  const [tasks, setTask] = useState<Task[]>([]);
+  const [tasks, setTask] = useState<Task[]>(initialTasks);
 
   const [activeColumn, setActiveColumn] = useState<Column | null>(null);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -167,26 +179,35 @@ const Kanbanboard = () => {
 
     if (!over) return;
 
-    const activeTaskId = active.id;
+    const activeId = active.id;
     const overId = over.id;
 
     const isActiveATask = active.data.current?.type === "Task";
     const isOverAColumn = over.data.current?.type === "Column";
 
-    if (!isActiveATask || !over) return;
-
-    if (isOverAColumn) {
+    if (isActiveATask) {
       setTask((tasks) => {
-        const activeTaskIndex = tasks.findIndex(
-          (task) => task.id === activeTaskId
-        );
+        const activeTaskIndex = tasks.findIndex((task) => task.id === activeId);
 
-        tasks[activeTaskIndex] = {
-          ...tasks[activeTaskIndex],
-          columnId: overId,
-        };
+        if (isOverAColumn) {
+          // Drop task onto a column
+          tasks[activeTaskIndex] = {
+            ...tasks[activeTaskIndex],
+            columnId: overId,
+          };
+        }
 
         return [...tasks];
+      });
+    } else {
+      // Handle dropping columns
+      setColumn((columns) => {
+        const activeColumnIndex = columns.findIndex(
+          (col) => col.id === activeId
+        );
+        const overColumnIndex = columns.findIndex((col) => col.id === overId);
+
+        return arrayMove(columns, activeColumnIndex, overColumnIndex);
       });
     }
   }
@@ -195,44 +216,54 @@ const Kanbanboard = () => {
     const { active, over } = event;
     if (!over) return;
 
-    const activeTaskId = active.id;
+    const activeId = active.id;
     const overId = over.id;
 
     const isActiveATask = active.data.current?.type === "Task";
     const isOverATask = over.data.current?.type === "Task";
     const isOverAColumn = over.data.current?.type === "Column";
 
-    if (!isActiveATask) return;
+    if (isActiveATask) {
+      setTask((tasks) => {
+        const activeTaskIndex = tasks.findIndex((task) => task.id === activeId);
+        const activeTask = tasks[activeTaskIndex];
 
-    setTask((tasks) => {
-      const activeTaskIndex = tasks.findIndex(
-        (task) => task.id === activeTaskId
-      );
-      let newTasks = [...tasks];
+        if (isOverATask) {
+          const overTaskIndex = tasks.findIndex((task) => task.id === overId);
+          const overTask = tasks[overTaskIndex];
 
-      if (isOverATask) {
-        const overTaskIndex = tasks.findIndex((task) => task.id === overId);
-
-        // Check if it's the same column
-        if (tasks[activeTaskIndex].columnId === tasks[overTaskIndex].columnId) {
-          newTasks = arrayMove(newTasks, activeTaskIndex, overTaskIndex);
-        } else {
-          newTasks[activeTaskIndex] = {
-            ...newTasks[activeTaskIndex],
-            columnId: tasks[overTaskIndex].columnId,
+          if (activeTask.columnId === overTask.columnId) {
+            // Move within the same column
+            return arrayMove(tasks, activeTaskIndex, overTaskIndex);
+          } else {
+            // Move to a different column
+            tasks[activeTaskIndex] = {
+              ...activeTask,
+              columnId: overTask.columnId,
+            };
+            return arrayMove(tasks, activeTaskIndex, overTaskIndex);
+          }
+        } else if (isOverAColumn) {
+          // Move task to an empty column
+          tasks[activeTaskIndex] = {
+            ...tasks[activeTaskIndex],
+            columnId: overId,
           };
-          newTasks = arrayMove(newTasks, activeTaskIndex, overTaskIndex);
         }
-      } else if (isOverAColumn) {
-        // When dragging over an empty column
-        newTasks[activeTaskIndex] = {
-          ...newTasks[activeTaskIndex],
-          columnId: overId,
-        };
-      }
 
-      return newTasks;
-    });
+        return [...tasks];
+      });
+    } else {
+      // Handle dragging columns
+      setColumn((columns) => {
+        const activeColumnIndex = columns.findIndex(
+          (col) => col.id === activeId
+        );
+        const overColumnIndex = columns.findIndex((col) => col.id === overId);
+
+        return arrayMove(columns, activeColumnIndex, overColumnIndex);
+      });
+    }
   }
 };
 
