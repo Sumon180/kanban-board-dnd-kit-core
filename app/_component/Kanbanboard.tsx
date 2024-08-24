@@ -17,6 +17,7 @@ import { arrayMove, SortableContext } from "@dnd-kit/sortable";
 const Kanbanboard = () => {
   const [columns, setColumn] = useState<Column[]>([]);
   const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
+  const [tasks, setTask] = useState<Task[]>([]);
 
   const [activeColumn, setActiveColumn] = useState<Column | null>(null);
 
@@ -50,6 +51,9 @@ const Kanbanboard = () => {
                   column={column}
                   deleteColumn={deleteColumn}
                   updateColumn={updateColumn}
+                  createTask={createTask}
+                  tasks={tasks.filter((task) => task.columnId === column.id)}
+                  deleteTask={deleteTask}
                 />
               ))}
             </SortableContext>
@@ -72,6 +76,9 @@ const Kanbanboard = () => {
               column={activeColumn}
               deleteColumn={deleteColumn}
               updateColumn={updateColumn}
+              createTask={createTask}
+              tasks={tasks.filter((task) => task.columnId === activeColumn.id)}
+              deleteTask={deleteTask}
             />
           )}
         </DragOverlay>
@@ -85,6 +92,20 @@ const Kanbanboard = () => {
       title: `Column ${columns.length + 1}`,
     };
     setColumn([...columns, columnToAdd]);
+  }
+
+  function createTask(columnId: Id) {
+    const newTask: Task = {
+      id: generatedId(),
+      columnId,
+      content: `Task ${tasks.length + 1}`,
+    };
+    setTask([...tasks, newTask]);
+  }
+
+  function deleteTask(id: Id) {
+    const filterTasks = tasks.filter((task) => task.id !== id);
+    setTask(filterTasks);
   }
 
   function deleteColumn(id: Id) {

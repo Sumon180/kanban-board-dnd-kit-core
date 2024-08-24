@@ -2,15 +2,20 @@ import React, { useState } from "react";
 import DeleteIcon from "./icons/DeleteIcon";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import TaskCard from "./TaskCard";
 
 interface Props {
   column: Column;
   deleteColumn: (id: Id) => void;
   updateColumn: (id: Id, title: string) => void;
+  createTask: (columId: Id) => void;
+  tasks: Task[];
+  deleteTask: (id: Id) => void;
 }
 
 const ColumnContainer = (props: Props) => {
-  const { column, deleteColumn, updateColumn } = props;
+  const { column, deleteColumn, updateColumn, createTask, tasks, deleteTask } =
+    props;
   const [editMode, setEditMode] = useState(false);
 
   const {
@@ -96,10 +101,19 @@ const ColumnContainer = (props: Props) => {
       </div>
 
       {/* Column task container */}
-      <div className="flex flex-grow">Content</div>
+      <div className="flex flex-grow flex-col gap-2 p-1 overflow-y-auto">
+        {tasks.map((task) => (
+          <TaskCard key={task.id} task={task} deleteTask={deleteTask} />
+        ))}
+      </div>
 
       {/* Add task footer */}
-      <div>Footer</div>
+      <button
+        className="bg-slate-900 rounded-b-md py-2"
+        onClick={() => createTask(column.id)}
+      >
+        Add task
+      </button>
     </div>
   );
 };
