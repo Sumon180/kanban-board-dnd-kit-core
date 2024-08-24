@@ -18,4 +18,8 @@ body,
   @apply bg-rose-700 rounded-xl
 }
 
+.task > ::-webkit-scrollbar-thumb {
+  @apply bg-sky-700 rounded-xl
+}
+
 
